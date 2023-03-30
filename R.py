@@ -227,18 +227,16 @@ def plot_grafs_choosen(filename1, filename2):
     delta_k_g = 80
     res_h = 0
     res_g = 0
-    d = up(up(filename1))
-    d = d + "/"
-    filename1 = filename1.replace(d,'')
+
+
     e_img = cv2.imread(filename1, cv2.IMREAD_GRAYSCALE)
     e_hist = Hist(e_img)
     e_grad = Grad(e_img)
     e_dft = DFT(e_img)
     e_dct = DCT(e_img)
     e_scale = Scale(e_img)
-    d = up(up(filename2))
-    d = d + "/"
-    filename2 = filename2.replace(d,'')
+
+
     t_img = cv2.imread(filename2, cv2.IMREAD_GRAYSCALE)
     t_hist = Hist(t_img)
     t_grad = Grad(t_img)
@@ -277,7 +275,7 @@ def plot_grafs_choosen(filename1, filename2):
     plt.title("Scale")
 
     plt.subplot(3, 6, 1)
-    plt.imshow(t_or_img)
+    plt.imshow(t_img)
     plt.title("Тестовая")
     plt.subplot(3, 6, 2)
     plt.plot(t_hist, color="b")
