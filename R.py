@@ -47,13 +47,11 @@ def DFT(file):
     return magnitude_spectrum
 
 def Hist(file):
-    # reading the input image
-    # computing the histogram of the blue channel of the image
     histg = cv2.calcHist([file], [0], None, [256], [0, 256])
-    return cv2.normalize(histg, histg, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+    return histg
 
 def Scale(file):
-    return block_reduce(file, block_size=(2, 2), func=np.mean)
+    return block_reduce(file, block_size=(3, 3), func=np.mean)
 
 
 def plot_grafs(num_e):
@@ -62,8 +60,8 @@ def plot_grafs(num_e):
     stat_scale = []
     stat_hist = []
     stat_grad = []
-    delta_k_h = 150
-    delta_k_g = 60
+    delta_k_h = 110
+    delta_k_g = 55
     t_img_a = []
     t_hist = []
     t_grad = []
@@ -227,16 +225,12 @@ def plot_grafs_choosen(filename1, filename2):
     delta_k_g = 80
     res_h = 0
     res_g = 0
-
-
     e_img = cv2.imread(filename1, cv2.IMREAD_GRAYSCALE)
     e_hist = Hist(e_img)
     e_grad = Grad(e_img)
     e_dft = DFT(e_img)
     e_dct = DCT(e_img)
     e_scale = Scale(e_img)
-
-
     t_img = cv2.imread(filename2, cv2.IMREAD_GRAYSCALE)
     t_hist = Hist(t_img)
     t_grad = Grad(t_img)
@@ -244,18 +238,19 @@ def plot_grafs_choosen(filename1, filename2):
     t_dct = DCT(t_img)
     t_scale = Scale(t_img)
     t_or_img = plt.imread(filename2, cv2.IMREAD_GRAYSCALE)
+    e_or_img = plt.imread(filename1, cv2.IMREAD_GRAYSCALE)
     in_e_m, e_m_h = max(enumerate(e_hist), key=operator.itemgetter(1))
     in_e_g, e_m_g = max(enumerate(e_grad), key=operator.itemgetter(1))
     t_max_h = t_hist[in_e_m]
     t_max_g = t_grad[in_e_g]
     delt_c = abs(e_m_h - t_max_h)
     delt_g = abs(e_m_g - t_max_g)
-    if(delt_c < delta_k_h):
-         res_h +=1
+    if (delt_c < delta_k_h):
+        res_h += 1
     if (delt_g < delta_k_g):
         res_g += 1
     plt.subplot(3, 6, 13)
-    plt.imshow(e_img)
+    plt.imshow(e_or_img)
     plt.title("Эталон")
     plt.subplot(3, 6, 14)
     plt.plot(e_hist, color="b")
@@ -275,7 +270,7 @@ def plot_grafs_choosen(filename1, filename2):
     plt.title("Scale")
 
     plt.subplot(3, 6, 1)
-    plt.imshow(t_img)
+    plt.imshow(t_or_img)
     plt.title("Тестовая")
     plt.subplot(3, 6, 2)
     plt.plot(t_hist, color="b")
