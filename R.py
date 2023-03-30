@@ -235,7 +235,7 @@ def plot_grafs_choosen(filename1, filename2):
     e_grad = Grad(e_img)
     e_dft = DFT(e_img)
     e_dct = DCT(e_img)
-    e_scale = Scale(filename2)
+    e_scale = Scale(filename1)
     d = up(up(filename2))
     d = d + "/"
     filename2 = filename2.replace(d,'')
