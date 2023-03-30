@@ -235,7 +235,7 @@ def plot_grafs_choosen(filename1, filename2):
     e_grad = Grad(e_img)
     e_dft = DFT(e_img)
     e_dct = DCT(e_img)
-    e_scale = Scale(filename1)
+    e_scale = Scale(e_img)
     d = up(up(filename2))
     d = d + "/"
     filename2 = filename2.replace(d,'')
@@ -244,7 +244,7 @@ def plot_grafs_choosen(filename1, filename2):
     t_grad = Grad(t_img)
     t_dft = DFT(t_img)
     t_dct = DCT(t_img)
-    t_scale = Scale(filename2)
+    t_scale = Scale(t_img)
     t_or_img = plt.imread(filename2, cv2.IMREAD_GRAYSCALE)
     in_e_m, e_m_h = max(enumerate(e_hist), key=operator.itemgetter(1))
     in_e_g, e_m_g = max(enumerate(e_grad), key=operator.itemgetter(1))
