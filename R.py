@@ -5,7 +5,7 @@ import tkinter as tk
 import operator
 from tkinter import filedialog as fd
 import tkinter.messagebox as mb
-from os.path import dirname as up
+from skimage import io, measure, transform,metrics
 from skimage.measure import block_reduce
 
 def Grad (file):
@@ -51,7 +51,10 @@ def Hist(file):
     return histg
 
 def Scale(file):
-    return block_reduce(file, block_size=(3, 3), func=np.mean)
+    img = io.imread(file)
+
+    img_res = transform.resize(img, (20, 20))
+    return img_res
 
 
 def plot_grafs(num_e):
@@ -60,8 +63,8 @@ def plot_grafs(num_e):
     stat_scale = []
     stat_hist = []
     stat_grad = []
-    delta_k_h = 110
-    delta_k_g = 55
+    delta_k_h = 230
+    delta_k_g = 80
     t_img_a = []
     t_hist = []
     t_grad = []
@@ -90,7 +93,7 @@ def plot_grafs(num_e):
             e_grad.append(Grad(e_img))
             e_dft.append(DFT(e_img))
             e_dct.append(DCT(e_img))
-            e_scale.append(Scale(e_img))
+            e_scale.append(Scale(fln_e))
 
             for k in range(num_e+1, 11, 1):
                 fln_t=f"S{i}/{k}.pgm"
@@ -100,10 +103,10 @@ def plot_grafs(num_e):
                 t_grad.append(Grad(t_img))
                 t_dft.append(DFT(t_img))
                 t_dct.append(DCT(t_img))
-                t_scale.append(Scale(t_img))
-                in_e_m, e_m_h = max(enumerate(e_hist[j-1+num_e*(i-1)]), key=operator.itemgetter(1))
+                t_scale.append(Scale(fln_t))
+                in_e_h, e_m_h = max(enumerate(e_hist[j-1+num_e*(i-1)]), key=operator.itemgetter(1))
                 in_e_g, e_m_g = max(enumerate(e_grad[j-1+num_e*(i-1)]), key=operator.itemgetter(1))
-                t_max_h = t_hist[k - num_e-1+(10-num_e)*(i-1)][in_e_m]
+                t_max_h = t_hist[k - num_e-1+(10-num_e)*(i-1)][in_e_h]
                 t_max_g = t_grad[k - num_e-1+(10-num_e)*(i-1)][in_e_g]
                 delt_h = abs(e_m_h - t_max_h)
                 delt_g = abs(e_m_g - t_max_g)
@@ -123,7 +126,7 @@ def plot_grafs(num_e):
                 if (similarity_percent_dct > 1):
                     similarity_percent_dct = 2 - similarity_percent_dct
                 sum_sim_dct += similarity_percent_dct
-                ssim = np.corrcoef(e_scale[j-1+num_e*(i-1)].flatten(), t_scale[k - num_e-1+(10-num_e)*(i-1)].flatten())[0][1]
+                ssim = metrics.structural_similarity(e_scale[j-1+num_e*(i-1)], t_scale[k - num_e-1+(10-num_e)*(i-1)],data_range= 255)
                 if (ssim > 1):
                     ssim = 2 - ssim
                 sum_sim_scale +=ssim
@@ -230,13 +233,13 @@ def plot_grafs_choosen(filename1, filename2):
     e_grad = Grad(e_img)
     e_dft = DFT(e_img)
     e_dct = DCT(e_img)
-    e_scale = Scale(e_img)
+    e_scale = Scale(filename1)
     t_img = cv2.imread(filename2, cv2.IMREAD_GRAYSCALE)
     t_hist = Hist(t_img)
     t_grad = Grad(t_img)
     t_dft = DFT(t_img)
     t_dct = DCT(t_img)
-    t_scale = Scale(t_img)
+    t_scale = Scale(filename2)
     t_or_img = plt.imread(filename2, cv2.IMREAD_GRAYSCALE)
     e_or_img = plt.imread(filename1, cv2.IMREAD_GRAYSCALE)
     in_e_m, e_m_h = max(enumerate(e_hist), key=operator.itemgetter(1))
