@@ -230,7 +230,6 @@ def plot_grafs_choosen(filename1, filename2):
     res_g = 0
     sum_sim_dft = 0
     sum_sim_dct = 0
-    sum_sim_scale = 0
     e_img = cv2.imread(filename1, cv2.IMREAD_GRAYSCALE)
     e_hist = Hist(e_img)
     e_grad = Grad(e_img)
