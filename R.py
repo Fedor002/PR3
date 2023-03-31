@@ -184,7 +184,9 @@ def plot_grafs(num_e):
     axDCT.set_title('DVT')
     axScale.plot(x_r_scale, stat_scale, color="b")
     axScale.set_title('Scale')
+    fig1.set_size_inches(19,5)
     fig1.show()
+    fig3.set_size_inches(19,5)
     fig3.show()
 
     for t in range(0, 10, 1):
