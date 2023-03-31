@@ -228,6 +228,9 @@ def plot_grafs_choosen(filename1, filename2):
     delta_k_g = 80
     res_h = 0
     res_g = 0
+    sum_sim_dft = 0
+    sum_sim_dct = 0
+    sum_sim_scale = 0
     e_img = cv2.imread(filename1, cv2.IMREAD_GRAYSCALE)
     e_hist = Hist(e_img)
     e_grad = Grad(e_img)
@@ -252,6 +255,18 @@ def plot_grafs_choosen(filename1, filename2):
         res_h += 1
     if (delt_g < delta_k_g):
         res_g += 1
+    mean_mag_e = np.mean(e_dft)
+    mean_mag_t = np.mean(t_dft)
+    similarity_percent_dft = mean_mag_t / mean_mag_e
+    if (similarity_percent_dft > 1):
+        similarity_percent_dft = 2 - similarity_percent_dft
+    sum_sim_dft += similarity_percent_dft
+    linalg_norm_e = np.linalg.norm(e_dct)
+    linalg_norm_t = np.linalg.norm(t_dct)
+    similarity_percent_dct = linalg_norm_t / linalg_norm_e
+    if (similarity_percent_dct > 1):
+        similarity_percent_dct = 2 - similarity_percent_dct
+    sum_sim_dct += similarity_percent_dct
     plt.subplot(3, 6, 13)
     plt.imshow(e_or_img)
     plt.title("Эталон")
@@ -291,7 +306,7 @@ def plot_grafs_choosen(filename1, filename2):
     plt.subplot(3, 6, 6)
     plt.imshow(t_scale)
     plt.title("Scale")
-    if (res_g != 0 and res_h != 0):
+    if (res_g != 0 and res_h != 0 and similarity_percent_dft >=0.5 and similarity_percent_dct >=0.5):
         show_res("Совпадает")
     else:
         show_res("Не совпадает")
