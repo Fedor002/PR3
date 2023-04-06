@@ -60,7 +60,7 @@ def Scale(file):
     return img_res
 
 
-def plot_grafs(num_e):
+def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
     stat_dct = []
     stat_dft = []
     stat_scale = []
@@ -73,18 +73,33 @@ def plot_grafs(num_e):
     stat_grad_indv = []
     delta_k_h = 230
     delta_k_g = 80
+
     t_img_a = []
     t_hist = []
     t_grad = []
     t_dft = []
     t_dct = []
     t_scale = []
+
     e_img_a = []
     e_hist = []
     e_grad = []
     e_dft = []
     e_dct = []
     e_scale = []
+
+    ind_et = 0
+    ind_t = 0
+    if(ch_func == 0):
+        help_pos = num_e
+
+    if(ch_func == 1):
+        help_pos = 1
+
+    if(ch_func == 2):
+        help_pos = 0
+
+
     num_subfolders = len([f.path for f in os.scandir("Base") if f.is_dir()])
     for i in range(1, num_subfolders+1, 1):
         sum_h = 0
@@ -93,7 +108,7 @@ def plot_grafs(num_e):
         sum_sim_dct = 0
         sum_sim_scale = 0
         num_files = len([f for f in os.listdir(f"Base/s{i}") if os.path.isfile(os.path.join(f"Base/s{i}", f))])
-        for j in range(1, num_e + 1, 1):
+        for j in range(start_pos, end_pos + 1, step):
             res_h = 0
             res_g = 0
             fln_e = f"Base/s{i}/{j}.pgm"
@@ -104,8 +119,7 @@ def plot_grafs(num_e):
             e_dft.append(DFT(e_img))
             e_dct.append(DCT(e_img))
             e_scale.append(Scale(fln_e))
-
-            for k in range(num_e + 1, num_files+1, 1):
+            for k in range(help_pos + 1, num_files + 1, step):
                 fln_t = f"Base/s{i}/{k}.pgm"
                 t_img = cv2.imread(fln_t, cv2.IMREAD_GRAYSCALE)
                 t_img_a.append(t_img)
@@ -114,11 +128,24 @@ def plot_grafs(num_e):
                 t_dft.append(DFT(t_img))
                 t_dct.append(DCT(t_img))
                 t_scale.append(Scale(fln_t))
-                in_e_h, e_m_h = max(enumerate(e_hist[j - 1 + num_e * (i - 1)]), key=operator.itemgetter(1))
-                in_e_g, e_m_g = max(enumerate(e_grad[j - 1 + num_e * (i - 1)]), key=operator.itemgetter(1))
-                t_max_h = t_hist[k - num_e - 1 + (num_files - num_e) * (i - 1)][in_e_h]
-                t_max_g = t_grad[k - num_e - 1 + (num_files - num_e) * (i - 1)][in_e_g]
+                #Уменьшить процесс исправления и предусмотр четног/нечетного выбора
+                if (ch_func == 0):
+                    jjj = j - 1 + num_e * (i - 1)
+                    kkk = k - num_e - 1 + (10 - num_e) * (i - 1)
+                else:
+                    jjj = ind_et
+                    kkk = ind_t
+                # максимум на эталоне гистограммы
+                in_e_h, e_m_h = max(enumerate(e_hist[jjj]), key=operator.itemgetter(1))
+                # максимум на эталоне градиент
+                in_e_g, e_m_g = max(enumerate(e_grad[jjj]), key=operator.itemgetter(1))
+                # соответсвующее индексу эталона значение в тестовом, гистограмма
+                t_max_h = t_hist[kkk][in_e_h]
+                # соответсвующее индексу эталона значение в тестовом, градиент
+                t_max_g = t_grad[kkk][in_e_g]
+                # разница по гистограмме
                 delt_h = abs(e_m_h - t_max_h)
+                # разница по градиенту
                 delt_g = abs(e_m_g - t_max_g)
                 if (delt_h < delta_k_h):
                     stat_hist_indv.append(1)
@@ -131,39 +158,74 @@ def plot_grafs(num_e):
                     res_g += 1
                 else:
                     stat_grad_indv.append(0)
-                mean_mag_e = np.mean(e_dft[j - 1 + num_e * (i - 1)])
-                mean_mag_t = np.mean(t_dft[k - num_e - 1 + (num_files - num_e) * (i - 1)])
+                # среднее по эталону, dft
+                mean_mag_e = np.mean(e_dft[jjj])
+                # среднее по тестовому, dft
+                mean_mag_t = np.mean(t_dft[kkk])
+                # процент совпадения
                 similarity_percent_dft = mean_mag_t / mean_mag_e
                 if (similarity_percent_dft > 1):
                     similarity_percent_dft = 2 - similarity_percent_dft
                 sum_sim_dft += similarity_percent_dft
-                linalg_norm_e = np.linalg.norm(e_dct[j - 1 + num_e * (i - 1)])
-                linalg_norm_t = np.linalg.norm(t_dct[k - num_e - 1 + (num_files - num_e) * (i - 1)])
+                # расчет среднего по эталону, dct
+                linalg_norm_e = np.linalg.norm(e_dct[jjj])
+                # расчет среднего по тестовому, dct
+                linalg_norm_t = np.linalg.norm(t_dct[kkk])
+                # процент совпадения
                 similarity_percent_dct = linalg_norm_t / linalg_norm_e
                 if (similarity_percent_dct > 1):
                     similarity_percent_dct = 2 - similarity_percent_dct
                 sum_sim_dct += similarity_percent_dct
-                ssim = metrics.structural_similarity(e_scale[j - 1 + num_e * (i - 1)],
-                                                     t_scale[k - num_e - 1 + (num_files - num_e) * (i - 1)], data_range=255)
+                # процент совпадение scale
+                ssim = metrics.structural_similarity(e_scale[jjj],
+                                                     t_scale[kkk], data_range=255)
                 if (ssim > 1):
                     ssim = 2 - ssim
                 sum_sim_scale += ssim
                 stat_dft_indv.append(similarity_percent_dft)
                 stat_dct_indv.append(similarity_percent_dct)
                 stat_scale_indv.append(ssim)
+                ind_t += 1
             sum_h += res_h
             sum_g += res_g
-        stat_hist.append(sum_h / ((num_files - num_e) * num_e))
-        stat_grad.append(sum_g / ((num_files - num_e) * num_e))
-        stat_dft.append(sum_sim_dft / ((num_files - num_e) * num_e))
-        stat_dct.append(sum_sim_dct / ((num_files - num_e) * num_e))
-        stat_scale.append(sum_sim_scale / ((num_files - num_e) * num_e))
+            ind_et += 1
+        #Ускорить процесс исправления
+        dif = num_files - num_e
+        stat_hist.append(sum_h / ((dif) * num_e))
+        stat_grad.append(sum_g / ((dif) * num_e))
+        stat_dft.append(sum_sim_dft / ((dif) * num_e))
+        stat_dct.append(sum_sim_dct / ((dif) * num_e))
+        stat_scale.append(sum_sim_scale / ((dif) * num_e))
+    #Новые массивы, которые будут содержать результаты тестовых для каждой s
+    stat_hist_indv_n = np.zeros((dif) * num_subfolders)
+    stat_grad_indv_n = np.zeros((dif) * num_subfolders)
+    stat_dft_indv_n = np.zeros((dif) * num_subfolders)
+    stat_dct_indv_n = np.zeros((dif) * num_subfolders)
+    stat_scale_indv_n = np.zeros((dif) * num_subfolders)
+    #Просмотреть каждый s
+    for m in range(1, num_subfolders + 1, 1):
+        ad = 0
+        for l in range(0+(m-1)*dif,dif*m,1):
+            for o in range(0, num_e,1):
+                v = ad + dif * o + (m-1) * num_e * dif
+                # Идея этого процесса заключается в расчете среднего показателя тестовых относительно кол-ва эталонов
+                stat_hist_indv_n[l] += stat_hist_indv[v]
+                stat_grad_indv_n[l] += stat_grad_indv[v]
+                stat_dft_indv_n[l] += stat_dft_indv[v]
+                stat_dct_indv_n[l] += stat_dct_indv[v]
+                stat_scale_indv_n[l] += stat_scale_indv[v]
+            ad += 1
+            stat_hist_indv_n[l] = stat_hist_indv_n[l] / num_e
+            stat_grad_indv_n[l] = stat_grad_indv_n[l] / num_e
+            stat_dft_indv_n[l] = stat_dft_indv_n[l] / num_e
+            stat_dct_indv_n[l] = stat_dct_indv_n[l] / num_e
+            stat_scale_indv_n[l] = stat_scale_indv_n[l] / num_e
 
     fig6, ((ax_1, ax_2, ax_3, ax_4, ax_5, ax_6), (ax1, ax2, ax3, ax4, ax5, ax6)) = plt.subplots(2, 6)
-    fig7, (axH, axG, axDFT, axDCT, axScale) = plt.subplots(1, 5)
+    fig7, ((axIndH, axIndG, axIndDFT, axIndDCT, axIndScale),(axH, axG, axDFT, axDCT, axScale)) = plt.subplots(2, 5)
     plt.ion()
     ax_1.set_title('Тестовая')
-    i_a = ax_1.imshow(t_img_a[0])
+    i_a = ax_1.imshow(t_img_a[0], cmap='gray')
     ax_2.set_title(f'Гистограмма:{stat_hist_indv[0]}')
     h_a, = ax_2.plot(t_hist[0], color="b")
     ax_3.set_title(f'DFT:{stat_dft_indv[0]}')
@@ -174,10 +236,10 @@ def plot_grafs(num_e):
     ax_5.set_title(f'Grad:{stat_grad_indv[0]}')
     g_a, = ax_5.plot(x, t_grad[0], color="b")
     ax_6.set_title(f'Scale:{stat_scale[0]}')
-    sc_a = ax_6.imshow(t_scale[0])
+    sc_a = ax_6.imshow(t_scale[0], cmap='gray')
 
     ax1.set_title('Оригинал')
-    i_a_e = ax1.imshow(e_img_a[0])
+    i_a_e = ax1.imshow(e_img_a[0], cmap='gray')
     ax2.set_title('Гистограмма')
     h_a_e, = ax2.plot(e_hist[0], color="b")
     ax3.set_title('DFT')
@@ -188,22 +250,23 @@ def plot_grafs(num_e):
     ax5.set_title('Grad')
     g_a_e, = ax5.plot(x_e, e_grad[0], color="b")
     ax6.set_title('Scale')
-    sc_a_e = ax6.imshow(e_scale[0])
+    sc_a_e = ax6.imshow(e_scale[0], cmap='gray')
+
+
     x_r_g = np.arange(len(stat_grad))
     x_r_h = np.arange(len(stat_hist))
     x_r_dft = np.arange(len(stat_dft))
     x_r_dct = np.arange(len(stat_dct))
     x_r_scale = np.arange(len(stat_scale))
-    axH.plot(x_r_h, stat_hist, color="b")
-    axH.set_title('Hist')
-    axG.plot(x_r_g, stat_grad, color="b")
-    axG.set_title('Grad')
-    axDFT.plot(x_r_dft, stat_dft, color="b")
-    axDFT.set_title('DFT')
-    axDCT.plot(x_r_dct, stat_dct, color="b")
-    axDCT.set_title('DVT')
-    axScale.plot(x_r_scale, stat_scale, color="b")
-    axScale.set_title('Scale')
+
+
+    x_r_g_ind = np.arange(len(stat_grad_indv_n))
+    x_r_h_ind = np.arange(len(stat_hist_indv_n))
+    x_r_dft_ind = np.arange(len(stat_dft_indv_n))
+    x_r_dct_ind = np.arange(len(stat_dct_indv_n))
+    x_r_scale_ind = np.arange(len(stat_scale_indv_n))
+
+
     fig6.set_size_inches(19, 5)
     fig6.show()
     fig7.set_size_inches(19, 5)
@@ -211,6 +274,17 @@ def plot_grafs(num_e):
 
     num_subfolders = len([f.path for f in os.scandir("Base") if f.is_dir()])
     for t in range(0, num_subfolders, 1):
+        axH.plot(x_r_h[0:t+1:1], stat_hist[0:t+1:1], color="b")
+        axH.set_title('Hist')
+        axG.plot(x_r_g[0:t+1:1], stat_grad[0:t+1:1], color="b")
+        axG.set_title('Grad')
+        axDFT.plot(x_r_dft[0:t+1:1], stat_dft[0:t+1:1], color="b")
+        axDFT.set_title('DFT')
+        axDCT.plot(x_r_dct[0:t+1:1], stat_dct[0:t+1:1], color="b")
+        axDCT.set_title('DCT')
+        axScale.plot(x_r_scale[0:t+1:1], stat_scale[0:t+1:1], color="b")
+        axScale.set_title('Scale')
+        index = 0
         for p in range(0 + num_e * t, num_e * t + num_e, 1):
             i_a_e.set_data(e_img_a[p])
             h_a_e.set_ydata(e_hist[p])
@@ -226,14 +300,34 @@ def plot_grafs(num_e):
                 dc_a.set_data(t_dct[m])
                 g_a.set_ydata(t_grad[m])
                 sc_a.set_data(t_scale[m])
+
+
                 ax_2.set_title(f'Гистограмма:{stat_hist_indv[m]}')
                 ax_3.set_title(f'DFT:{stat_dft_indv[m]}')
                 ax_4.set_title(f'DCT:{stat_dct_indv[m]}')
                 ax_5.set_title(f'Grad:{stat_grad_indv[m]}')
                 ax_6.set_title(f'Scale:{stat_scale_indv[m]}')
+
+                # Вывод среднего по тестовым будет только при условии, что были просмотренны все эталоны и выводится последний тестовый
+                if((p+1 == num_e * t + num_e)):
+                    put=index + t*(num_files - num_e)+1
+                    axIndH.plot(x_r_h_ind[0:put:1], stat_hist_indv_n[0:put:1], color="b")
+                    axIndH.set_title('Hist')
+                    axIndG.plot(x_r_g_ind[0:put:1], stat_grad_indv_n[0:put:1], color="b")
+                    axIndG.set_title('Grad')
+                    axIndDFT.plot(x_r_dft_ind[0:put:1], stat_dft_indv_n[0:put:1], color="b")
+                    axIndDFT.set_title('DFT')
+                    axIndDCT.plot(x_r_dct_ind[0:put:1], stat_dct_indv_n[0:put:1], color="b")
+                    axIndDCT.set_title('DCT')
+                    axIndScale.plot(x_r_scale_ind[0:put:1], stat_scale_indv_n[0:put:1], color="b")
+                    axIndScale.set_title('Scale')
+                    index+=1
+
                 fig6.canvas.draw()
                 fig6.canvas.flush_events()
-    plt.waitforbuttonpress()
+                fig7.canvas.draw()
+                fig7.canvas.flush_events()
+    plt.pause(30)
     plt.close()
 
 def plot_grafs_choosen(filename1, filename2):
@@ -421,17 +515,42 @@ def plot_grafs_choosen_dir(filename, num_e):
                 stat_scale_indv.append(ssim)
             sum_h+=res_h
             sum_g += res_g
+            dif = num_files - num_e
         stat_hist.append(sum_h/((num_files-num_e)*num_e))
         stat_grad.append(sum_g / ((num_files - num_e) * num_e))
         stat_dft.append(sum_sim_dft/((num_files - num_e) * num_e))
         stat_dct.append(sum_sim_dct/((num_files - num_e) * num_e))
         stat_scale.append(sum_sim_scale / ((num_files - num_e) * num_e))
+    stat_hist_indv_n = np.zeros((dif) * 1)
+    stat_grad_indv_n = np.zeros((dif) * 1)
+    stat_dft_indv_n = np.zeros((dif) * 1)
+    stat_dct_indv_n = np.zeros((dif) * 1)
+    stat_scale_indv_n = np.zeros((dif) * 1)
+    #Просмотреть каждый s
+    for m in range(1, 1 + 1, 1):
+        ad = 0
+        for l in range(0+(m-1)*dif,dif*m,1):
+            for o in range(0, num_e,1):
+                v = ad + dif * o + (m-1) * num_e * dif
+                # Идея этого процесса заключается в расчете среднего показателя тестовых относительно кол-ва эталонов
+                stat_hist_indv_n[l] += stat_hist_indv[v]
+                stat_grad_indv_n[l] += stat_grad_indv[v]
+                stat_dft_indv_n[l] += stat_dft_indv[v]
+                stat_dct_indv_n[l] += stat_dct_indv[v]
+                stat_scale_indv_n[l] += stat_scale_indv[v]
+            ad += 1
+            stat_hist_indv_n[l] = stat_hist_indv_n[l] / num_e
+            stat_grad_indv_n[l] = stat_grad_indv_n[l] / num_e
+            stat_dft_indv_n[l] = stat_dft_indv_n[l] / num_e
+            stat_dct_indv_n[l] = stat_dct_indv_n[l] / num_e
+            stat_scale_indv_n[l] = stat_scale_indv_n[l] / num_e
+
 
     fig1, ((ax_1, ax_2, ax_3, ax_4, ax_5, ax_6),(ax1, ax2, ax3, ax4, ax5, ax6)) = plt.subplots(2, 6)
-    fig3, (axH, axG,axDFT,axDCT, axScale) = plt.subplots(1, 5)
+    fig3, ((axIndH, axIndG, axIndDFT, axIndDCT, axIndScale),(axH, axG, axDFT, axDCT, axScale)) = plt.subplots(2, 5)
     plt.ion()
     ax_1.set_title('Тестовая')
-    i_a = ax_1.imshow(t_img_a[0])
+    i_a = ax_1.imshow(t_img_a[0], cmap='gray')
     ax_2.set_title(f'Гистограмма:{stat_hist_indv[0]}')
     h_a, = ax_2.plot(t_hist[0], color="b")
     ax_3.set_title(f'DFT:{stat_dft_indv[0]}')
@@ -442,10 +561,10 @@ def plot_grafs_choosen_dir(filename, num_e):
     ax_5.set_title(f'Grad:{stat_grad_indv[0]}')
     g_a, = ax_5.plot(x, t_grad[0], color="b")
     ax_6.set_title(f'Scale:{stat_scale[0]}')
-    sc_a = ax_6.imshow(t_scale[0])
+    sc_a = ax_6.imshow(t_scale[0], cmap='gray')
 
     ax1.set_title('Оригинал')
-    i_a_e = ax1.imshow(e_img_a[0])
+    i_a_e = ax1.imshow(e_img_a[0], cmap='gray')
     ax2.set_title('Гистограмма')
     h_a_e, = ax2.plot(e_hist[0], color="b")
     ax3.set_title('DFT')
@@ -456,28 +575,38 @@ def plot_grafs_choosen_dir(filename, num_e):
     ax5.set_title('Grad')
     g_a_e, = ax5.plot(x_e, e_grad[0], color="b")
     ax6.set_title('Scale')
-    sc_a_e = ax6.imshow(e_scale[0])
+    sc_a_e = ax6.imshow(e_scale[0], cmap='gray')
+
+
     x_r_g = np.arange(len(stat_grad))
     x_r_h = np.arange(len(stat_hist))
     x_r_dft = np.arange(len(stat_dft))
     x_r_dct = np.arange(len(stat_dct))
     x_r_scale = np.arange(len(stat_scale))
-    axH.plot(x_r_h, stat_hist, color="b")
-    axH.set_title('Hist')
-    axG.plot(x_r_g, stat_grad, color="b")
-    axG.set_title('Grad')
-    axDFT.plot(x_r_dft, stat_dft, color="b")
-    axDFT.set_title('DFT')
-    axDCT.plot(x_r_dct, stat_dct, color="b")
-    axDCT.set_title('DVT')
-    axScale.plot(x_r_scale, stat_scale, color="b")
-    axScale.set_title('Scale')
+
+    x_r_g_ind = np.arange(len(stat_grad_indv_n))
+    x_r_h_ind = np.arange(len(stat_hist_indv_n))
+    x_r_dft_ind = np.arange(len(stat_dft_indv_n))
+    x_r_dct_ind = np.arange(len(stat_dct_indv_n))
+    x_r_scale_ind = np.arange(len(stat_scale_indv_n))
+
     fig1.set_size_inches(19,5)
     fig1.show()
     fig3.set_size_inches(19,5)
     fig3.show()
 
     for t in range(0, 1, 1):
+        axH.plot(x_r_h[0:t+1:1], stat_hist[0:t+1:1], color="b")
+        axH.set_title('Hist')
+        axG.plot(x_r_g[0:t+1:1], stat_grad[0:t+1:1], color="b")
+        axG.set_title('Grad')
+        axDFT.plot(x_r_dft[0:t+1:1], stat_dft[0:t+1:1], color="b")
+        axDFT.set_title('DFT')
+        axDCT.plot(x_r_dct[0:t+1:1], stat_dct[0:t+1:1], color="b")
+        axDCT.set_title('DCT')
+        axScale.plot(x_r_scale[0:t+1:1], stat_scale[0:t+1:1], color="b")
+        axScale.set_title('Scale')
+        index = 0
         for p in range(0 + num_e * t, num_e * t + num_e, 1):
             i_a_e.set_data(e_img_a[p])
             h_a_e.set_ydata(e_hist[p])
@@ -498,15 +627,46 @@ def plot_grafs_choosen_dir(filename, num_e):
                 ax_4.set_title(f'DCT:{stat_dct_indv[m]}')
                 ax_5.set_title(f'Grad:{stat_grad_indv[m]}')
                 ax_6.set_title(f'Scale:{stat_scale_indv[m]}')
+                if((p+1 == num_e * t + num_e)):
+                    put=index + t*(num_files - num_e)+1
+                    axIndH.plot(x_r_h_ind[0:put:1], stat_hist_indv_n[0:put:1], color="b")
+                    axIndH.set_title('Hist')
+                    axIndG.plot(x_r_g_ind[0:put:1], stat_grad_indv_n[0:put:1], color="b")
+                    axIndG.set_title('Grad')
+                    axIndDFT.plot(x_r_dft_ind[0:put:1], stat_dft_indv_n[0:put:1], color="b")
+                    axIndDFT.set_title('DFT')
+                    axIndDCT.plot(x_r_dct_ind[0:put:1], stat_dct_indv_n[0:put:1], color="b")
+                    axIndDCT.set_title('DCT')
+                    axIndScale.plot(x_r_scale_ind[0:put:1], stat_scale_indv_n[0:put:1], color="b")
+                    axIndScale.set_title('Scale')
+                    index+=1
                 fig1.canvas.draw()
                 fig1.canvas.flush_events()
+                fig3.canvas.draw()
+                fig3.canvas.flush_events()
     plt.waitforbuttonpress()
     plt.close()
 
-def get_num_etalons():
+def get_num_etalons(choosed_op):
     num_etalons = num_etalons_entry.get()
+
+    if (choosed_op == 0):  # эталоны берутся по порядку
+        start_pos = 1
+        step = 1
+        end_pos = int(num_etalons)
+    if (choosed_op == 1):  # эталоны нечётные
+        start_pos = 1
+        step = 2
+        end_pos = 10
+        num_etalons = str(5)
+    if (choosed_op == 2):  # эталоны чётные
+        start_pos = 2
+        step = 2
+        end_pos = 10
+        num_etalons = str(5)
+
     if num_etalons.isdigit() and int(num_etalons) > 0:
-        plot_grafs(int(num_etalons))
+        plot_grafs(int(num_etalons), start_pos, step, end_pos, choosed_op)
     else:
         tk.showerror("Ошибка", "Введите целое положительное число")
 
@@ -517,9 +677,17 @@ def choose_test(e_n,filename1):
     else:
         tk.showerror("Ошибка", "Введите целое положительное число")
 
-def choose_test():
+def choose_activ():
     filename1 = fd.askopenfilename()
     filename2 = fd.askopenfilename()
+    d = up(filename1)
+    d = d + "/"
+    filename1 = filename1.replace(d, '')
+
+    d = up(filename2)
+    d = d + "/"
+    filename2 = filename2.replace(d, '')
+
     plot_grafs_choosen(filename1, filename2)
 
 def show_res(text):
@@ -549,7 +717,7 @@ def choose_dir():
 
 # Создаем главное окно
 root = tk.Tk()
-root.geometry('300x150')
+root.geometry('300x200')
 # Создаем метку и поле для ввода количества эталонов
 num_etalons_label = tk.Label(root, text="Количество эталонов:")
 num_etalons_label.pack()
@@ -557,14 +725,19 @@ num_etalons_entry = tk.Entry(root)
 num_etalons_entry.pack()
 
 # Создаем кнопку для подтверждения ввода
-plot_button = tk.Button(root, text="Построить графики", command=get_num_etalons)
+plot_button = tk.Button(root, text="Построить графики", command=lambda :get_num_etalons(int(0)))
 plot_button.pack()
 
-plot_button = tk.Button(root, text="Произвести произвольную выборку", command=choose_test)
+plot_button = tk.Button(root, text="Произвести произвольную выборку", command=choose_activ)
 plot_button.pack()
 
 plot_button = tk.Button(root, text="Выбрать директорию", command=choose_dir)
 plot_button.pack()
+
+plot_button2 = tk.Button(root, text="Нечетные эталоны", command= lambda :get_num_etalons(int(1)))
+plot_button2.pack()
+plot_button3 = tk.Button(root, text="Четные эталоны", command= lambda :get_num_etalons(int(2)))
+plot_button3.pack()
 
 # Запускаем главный цикл обработки событий
 root.mainloop()
