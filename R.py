@@ -238,6 +238,12 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
     fig6, ((ax_1, ax_2, ax_3, ax_4, ax_5, ax_6), (ax1, ax2, ax3, ax4, ax5, ax6)) = plt.subplots(2, 6)
     fig7, ((axIndH, axIndG, axIndDFT, axIndDCT, axIndScale),(axH, axG, axDFT, axDCT, axScale)) = plt.subplots(2, 5)
     plt.ion()
+    stat_hist_indv = np.round(stat_hist_indv,decimals=5)
+    stat_grad_indv = np.round(stat_grad_indv, decimals=5)
+    stat_dft_indv = np.round(stat_dft_indv, decimals=5)
+    stat_dct_indv = np.round(stat_dct_indv, decimals=5)
+    stat_scale_indv = np.round(stat_scale_indv, decimals=5)
+
     ax_1.set_title('Тестовая')
     i_a = ax_1.imshow(t_img_a[0], cmap='gray')
     ax_2.set_title(f'Гистограмма:{round(stat_hist_indv[0],5)}')
@@ -329,11 +335,11 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
                 t_diffrent.set_ydata(t_hist_test[m])
 
 
-                ax_2.set_title(f'Гистограмма:{stat_hist_indv[m]}')
-                ax_3.set_title(f'DFT:{stat_dft_indv[m]}')
-                ax_4.set_title(f'DCT:{stat_dct_indv[m]}')
-                ax_5.set_title(f'Grad:{stat_grad_indv[m]}')
-                ax_6.set_title(f'Scale:{stat_scale_indv[m]}')
+                ax_2.set_title(f'Гистограмма:{round(stat_hist_indv[m],5)}')
+                ax_3.set_title(f'DFT:{round(stat_dft_indv[m],5)}')
+                ax_4.set_title(f'DCT:{round(stat_dct_indv[m],5)}')
+                ax_5.set_title(f'Grad:{round(stat_grad_indv[m],5)}')
+                ax_6.set_title(f'Scale:{round(stat_scale_indv[m],5)}')
 
                 # Вывод среднего по тестовым будет только при условии, что были просмотренны все эталоны и выводится последний тестовый
                 if((p+1 == num_e * t + num_e)):
