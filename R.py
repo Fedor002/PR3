@@ -18,8 +18,8 @@ def Grad (file):
     dy = 1
 
     # Вычисление градиента
-    gradient_x = cv2.Sobel(file, cv2.CV_32F, dx, 0, ksize=ksize)
-    gradient_y = cv2.Sobel(file, cv2.CV_32F, 0, dy, ksize=ksize)
+    gradient_x = cv2.Sobel(file, cv2.CV_64F, dx, 0, ksize=ksize)
+    gradient_y = cv2.Sobel(file, cv2.CV_64F, 0, dy, ksize=ksize)
 
     # Вычисление абсолютного значения градиента
     abs_gradient_x = cv2.convertScaleAbs(gradient_x)
@@ -53,6 +53,10 @@ def Hist(file):
     histg = cv2.calcHist([file], [0], None, [256], [0, 256])
     return histg
 
+def HistTest(file):
+    histg = cv2.calcHist([file], [0], None, [300], [0, 256])
+    return histg
+
 def Scale(file):
     img = io.imread(file, as_gray=True)
 
@@ -80,9 +84,11 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
     t_dft = []
     t_dct = []
     t_scale = []
+    t_hist_test=[]
 
     e_img_a = []
     e_hist = []
+    e_hist_test = []
     e_grad = []
     e_dft = []
     e_dct = []
@@ -109,6 +115,7 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
         sum_sim_scale = 0
         num_files = len([f for f in os.listdir(f"Base/s{i}") if os.path.isfile(os.path.join(f"Base/s{i}", f))])
         for j in range(start_pos, end_pos + 1, step):
+            #Заполнение эталонов
             res_h = 0
             res_g = 0
             fln_e = f"Base/s{i}/{j}.pgm"
@@ -119,7 +126,9 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
             e_dft.append(DFT(e_img))
             e_dct.append(DCT(e_img))
             e_scale.append(Scale(fln_e))
+            e_hist_test.append(HistTest(e_img))
             for k in range(help_pos + 1, num_files + 1, step):
+                # Заполнение тестовых
                 fln_t = f"Base/s{i}/{k}.pgm"
                 t_img = cv2.imread(fln_t, cv2.IMREAD_GRAYSCALE)
                 t_img_a.append(t_img)
@@ -128,6 +137,7 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
                 t_dft.append(DFT(t_img))
                 t_dct.append(DCT(t_img))
                 t_scale.append(Scale(fln_t))
+                t_hist_test.append(HistTest(t_img))
                 #Уменьшить процесс исправления и предусмотр четног/нечетного выбора
                 if (ch_func == 0):
                     jjj = j - 1 + num_e * (i - 1)
@@ -137,9 +147,11 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
                     kkk = ind_t
                 # максимум на эталоне гистограммы
                 in_e_h, e_m_h = max(enumerate(e_hist[jjj]), key=operator.itemgetter(1))
+                in_e_h_test, e_m_h_test = max(enumerate(e_hist_test[jjj]), key=operator.itemgetter(1))
                 # максимум на эталоне градиент
                 in_e_g, e_m_g = max(enumerate(e_grad[jjj]), key=operator.itemgetter(1))
                 # соответсвующее индексу эталона значение в тестовом, гистограмма
+                t_max_h_test = t_hist[kkk][in_e_h_test]
                 t_max_h = t_hist[kkk][in_e_h]
                 # соответсвующее индексу эталона значение в тестовом, градиент
                 t_max_g = t_grad[kkk][in_e_g]
@@ -182,6 +194,7 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
                 if (ssim > 1):
                     ssim = 2 - ssim
                 sum_sim_scale += ssim
+                #Довалнение процентов схождений
                 stat_dft_indv.append(similarity_percent_dft)
                 stat_dct_indv.append(similarity_percent_dct)
                 stat_scale_indv.append(ssim)
@@ -206,9 +219,9 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
     for m in range(1, num_subfolders + 1, 1):
         ad = 0
         for l in range(0+(m-1)*dif,dif*m,1):
+            # Идея этого процесса заключается в расчете среднего показателя тестовых относительно кол-ва эталонов
             for o in range(0, num_e,1):
                 v = ad + dif * o + (m-1) * num_e * dif
-                # Идея этого процесса заключается в расчете среднего показателя тестовых относительно кол-ва эталонов
                 stat_hist_indv_n[l] += stat_hist_indv[v]
                 stat_grad_indv_n[l] += stat_grad_indv[v]
                 stat_dft_indv_n[l] += stat_dft_indv[v]
@@ -221,21 +234,22 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
             stat_dct_indv_n[l] = stat_dct_indv_n[l] / num_e
             stat_scale_indv_n[l] = stat_scale_indv_n[l] / num_e
 
+    fig3,(ax11,ax12) = plt.subplots(1, 2)
     fig6, ((ax_1, ax_2, ax_3, ax_4, ax_5, ax_6), (ax1, ax2, ax3, ax4, ax5, ax6)) = plt.subplots(2, 6)
     fig7, ((axIndH, axIndG, axIndDFT, axIndDCT, axIndScale),(axH, axG, axDFT, axDCT, axScale)) = plt.subplots(2, 5)
     plt.ion()
     ax_1.set_title('Тестовая')
     i_a = ax_1.imshow(t_img_a[0], cmap='gray')
-    ax_2.set_title(f'Гистограмма:{stat_hist_indv[0]}')
+    ax_2.set_title(f'Гистограмма:{round(stat_hist_indv[0],5)}')
     h_a, = ax_2.plot(t_hist[0], color="b")
-    ax_3.set_title(f'DFT:{stat_dft_indv[0]}')
+    ax_3.set_title(f'DFT:{round(stat_dft_indv[0],5)}')
     df_a = ax_3.imshow(t_dft[0], cmap='gray', vmin=0, vmax=255)
-    ax_4.set_title(f'DCT:{stat_dct_indv[0]}')
+    ax_4.set_title(f'DCT:{round(stat_dct_indv[0],5)}')
     dc_a = ax_4.imshow(np.abs(t_dct[0]), vmin=0, vmax=255)
     x = np.arange(len(t_grad[0]))
-    ax_5.set_title(f'Grad:{stat_grad_indv[0]}')
+    ax_5.set_title(f'Grad:{round(stat_grad_indv[0],5)}')
     g_a, = ax_5.plot(x, t_grad[0], color="b")
-    ax_6.set_title(f'Scale:{stat_scale[0]}')
+    ax_6.set_title(f'Scale:{round(stat_scale[0],5)}')
     sc_a = ax_6.imshow(t_scale[0], cmap='gray')
 
     ax1.set_title('Оригинал')
@@ -252,6 +266,10 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
     ax6.set_title('Scale')
     sc_a_e = ax6.imshow(e_scale[0], cmap='gray')
 
+    ax11.set_title("Гистограмма тестового при ином диапозоне, тестовый")
+    t_diffrent, = ax11.plot(t_hist_test[0], color="b")
+    ax12.set_title("Гистограмма тестового при ином диапозоне, эталон")
+    e_diffrent, = ax12.plot(e_hist_test[0], color="b")
 
     x_r_g = np.arange(len(stat_grad))
     x_r_h = np.arange(len(stat_hist))
@@ -267,15 +285,20 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
     x_r_scale_ind = np.arange(len(stat_scale_indv_n))
 
 
-    fig6.set_size_inches(19, 5)
+    fig6.set_size_inches(19, 7)
     fig6.show()
-    fig7.set_size_inches(19, 5)
+    fig7.subplots_adjust(hspace = 0.5)
+    fig7.set_size_inches(19, 7)
     fig7.show()
+    fig3.set_size_inches(19, 7)
+    fig3.show()
 
     num_subfolders = len([f.path for f in os.scandir("Base") if f.is_dir()])
     for t in range(0, num_subfolders, 1):
         axH.plot(x_r_h[0:t+1:1], stat_hist[0:t+1:1], color="b")
         axH.set_title('Hist')
+        axH.set_xlabel("Папка s")
+        axH.set_ylabel("Средний процент по папке")
         axG.plot(x_r_g[0:t+1:1], stat_grad[0:t+1:1], color="b")
         axG.set_title('Grad')
         axDFT.plot(x_r_dft[0:t+1:1], stat_dft[0:t+1:1], color="b")
@@ -285,6 +308,7 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
         axScale.plot(x_r_scale[0:t+1:1], stat_scale[0:t+1:1], color="b")
         axScale.set_title('Scale')
         index = 0
+        # Динамическое переключение графиков для еталонов
         for p in range(0 + num_e * t, num_e * t + num_e, 1):
             i_a_e.set_data(e_img_a[p])
             h_a_e.set_ydata(e_hist[p])
@@ -292,7 +316,9 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
             dc_a_e.set_data(e_dct[p])
             g_a_e.set_ydata(e_grad[p])
             sc_a_e.set_data(e_scale[p])
+            e_diffrent.set_ydata(e_hist_test[p])
             num_files = len([f for f in os.listdir(f"Base/s{i}") if os.path.isfile(os.path.join(f"Base/s{i}", f))])
+            #Динамическое переключение графиков для тестового
             for m in range((0 + p * (num_files - num_e)), (num_files - num_e) * (p + 1), 1):
                 i_a.set_data(t_img_a[m])
                 h_a.set_ydata(t_hist[m])
@@ -300,6 +326,7 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
                 dc_a.set_data(t_dct[m])
                 g_a.set_ydata(t_grad[m])
                 sc_a.set_data(t_scale[m])
+                t_diffrent.set_ydata(t_hist_test[m])
 
 
                 ax_2.set_title(f'Гистограмма:{stat_hist_indv[m]}')
@@ -313,6 +340,8 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
                     put=index + t*(num_files - num_e)+1
                     axIndH.plot(x_r_h_ind[0:put:1], stat_hist_indv_n[0:put:1], color="b")
                     axIndH.set_title('Hist')
+                    axIndH.set_xlabel("Тестовый")
+                    axIndH.set_ylabel("Средний процент по тестовому")
                     axIndG.plot(x_r_g_ind[0:put:1], stat_grad_indv_n[0:put:1], color="b")
                     axIndG.set_title('Grad')
                     axIndDFT.plot(x_r_dft_ind[0:put:1], stat_dft_indv_n[0:put:1], color="b")
@@ -327,7 +356,9 @@ def plot_grafs(num_e, start_pos, step, end_pos, ch_func):
                 fig6.canvas.flush_events()
                 fig7.canvas.draw()
                 fig7.canvas.flush_events()
-    plt.pause(30)
+                fig3.canvas.draw()
+                fig3.canvas.flush_events()
+    plt.pause(100)
     plt.close()
 
 def plot_grafs_choosen(filename1, filename2):
@@ -349,8 +380,6 @@ def plot_grafs_choosen(filename1, filename2):
     t_dft = DFT(t_img)
     t_dct = DCT(t_img)
     t_scale = Scale(filename2)
-    t_or_img = plt.imread(filename2, cv2.IMREAD_GRAYSCALE)
-    e_or_img = plt.imread(filename1, cv2.IMREAD_GRAYSCALE)
     in_e_m, e_m_h = max(enumerate(e_hist), key=operator.itemgetter(1))
     in_e_g, e_m_g = max(enumerate(e_grad), key=operator.itemgetter(1))
     t_max_h = t_hist[in_e_m]
@@ -376,7 +405,7 @@ def plot_grafs_choosen(filename1, filename2):
     ssim = metrics.structural_similarity(e_scale,
                                          t_scale, data_range=255)
     plt.subplot(3, 6, 13)
-    plt.imshow(e_or_img)
+    plt.imshow(e_img, cmap='gray')
     plt.title("Эталон")
     plt.subplot(3, 6, 14)
     plt.plot(e_hist, color="b")
@@ -392,11 +421,11 @@ def plot_grafs_choosen(filename1, filename2):
     plt.plot(x, e_grad, color="b")
     plt.title("Градиент")
     plt.subplot(3, 6, 18)
-    plt.imshow(e_scale)
+    plt.imshow(e_scale,cmap='gray')
     plt.title("Scale")
 
     plt.subplot(3, 6, 1)
-    plt.imshow(t_or_img)
+    plt.imshow(t_img, cmap='gray')
     plt.title("Тестовая")
     plt.subplot(3, 6, 2)
     plt.plot(t_hist, color="b")
@@ -412,7 +441,7 @@ def plot_grafs_choosen(filename1, filename2):
     plt.plot(x, t_grad, color="b")
     plt.title("Градиент")
     plt.subplot(3, 6, 6)
-    plt.imshow(t_scale)
+    plt.imshow(t_scale,cmap='gray')
     plt.title("Scale")
     if (res_g != 0 and res_h != 0 and similarity_percent_dft >=0.5 and similarity_percent_dct >=0.5 and ssim >=0.5):
         show_res("Совпадает")
@@ -593,19 +622,21 @@ def plot_grafs_choosen_dir(filename, num_e):
     fig1.set_size_inches(19,5)
     fig1.show()
     fig3.set_size_inches(19,5)
+    fig3.subplots_adjust(hspace=0.5)
     fig3.show()
 
     for t in range(0, 1, 1):
         axH.plot(x_r_h[0:t+1:1], stat_hist[0:t+1:1], color="b")
-        axH.set_title('Hist')
+        axH.set_xlabel("Папка s")
+        axH.set_ylabel("Средний процент по папке")
         axG.plot(x_r_g[0:t+1:1], stat_grad[0:t+1:1], color="b")
-        axG.set_title('Grad')
+
         axDFT.plot(x_r_dft[0:t+1:1], stat_dft[0:t+1:1], color="b")
-        axDFT.set_title('DFT')
+
         axDCT.plot(x_r_dct[0:t+1:1], stat_dct[0:t+1:1], color="b")
-        axDCT.set_title('DCT')
+
         axScale.plot(x_r_scale[0:t+1:1], stat_scale[0:t+1:1], color="b")
-        axScale.set_title('Scale')
+
         index = 0
         for p in range(0 + num_e * t, num_e * t + num_e, 1):
             i_a_e.set_data(e_img_a[p])
@@ -631,6 +662,8 @@ def plot_grafs_choosen_dir(filename, num_e):
                     put=index + t*(num_files - num_e)+1
                     axIndH.plot(x_r_h_ind[0:put:1], stat_hist_indv_n[0:put:1], color="b")
                     axIndH.set_title('Hist')
+                    axIndH.set_xlabel("Тестовый")
+                    axIndH.set_ylabel("Средний процент по тестовому")
                     axIndG.plot(x_r_g_ind[0:put:1], stat_grad_indv_n[0:put:1], color="b")
                     axIndG.set_title('Grad')
                     axIndDFT.plot(x_r_dft_ind[0:put:1], stat_dft_indv_n[0:put:1], color="b")
